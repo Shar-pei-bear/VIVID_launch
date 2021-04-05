@@ -14,20 +14,24 @@
         Example:
            $ roslaunch rtabmap_ros bumblebee.launch -->
      
-  <!-- Choose between depth and stereo, set both to false to do only scan -->      
+  <!-- Choose between depth and stereo, set both to false to do only scan --> 
+  <arg name="camera" default="openni"
+      doc="'camera' should uniquely identify the device. All topics are pushed down
+          into the 'camera' namespace, and it is prepended to tf frame ids." />
+
   <arg name="stereo"                    default="false"/>
   <arg     if="$(arg stereo)" name="depth"  default="false"/>
   <arg unless="$(arg stereo)" name="depth"  default="true"/>
  
   <!-- Choose visualization -->
-  <arg name="rtabmapviz"              default="true" /> 
-  <arg name="rviz"                    default="false" />
+  <arg name="rtabmapviz"              default="false" /> 
+  <arg name="rviz"                    default="true" />
   
   <!-- Localization-only mode -->
   <arg name="localization"            default="false"/>
   
   <!-- sim time for convenience, if playing a rosbag -->
-  <arg name="use_sim_time"            default="false"/>
+  <arg name="use_sim_time"            default="true"/>
   <param if="$(arg use_sim_time)" name="use_sim_time" value="true"/>
   
   <!-- Corresponding config files -->
@@ -35,16 +39,16 @@
   <arg name="gui_cfg"                 default="~/.ros/rtabmap_gui.ini" />
   <arg name="rviz_cfg"                default="$(find rtabmap_ros)/launch/config/rgbd.rviz" />
   
-  <arg name="frame_id"                default="openni_rgb_optical_frame"/>     <!-- Fixed frame id, you may set "base_link" or "base_footprint" if they are published -->
+  <arg name="frame_id"                default="$(arg camera)_link"/>     <!-- Fixed frame id, you may set "base_link" or "base_footprint" if they are published -->
   <arg name="odom_frame_id"           default=""/>                <!-- If set, TF is used to get odometry instead of the topic -->
-  <arg name="map_frame_id"            default="odom"/>
+  <arg name="map_frame_id"            default="map"/>
   <arg name="ground_truth_frame_id"   default=""/>     <!-- e.g., "world" -->
   <arg name="ground_truth_base_frame_id" default=""/>  <!-- e.g., "tracker", a fake frame matching the frame "frame_id" (but on different TF tree) -->
   <arg name="namespace"               default="rtabmap"/>
   <arg name="database_path"           default="~/.ros/rtabmap.db"/>
   <arg name="queue_size"              default="10"/>
   <arg name="wait_for_transform"      default="0.2"/>
-  <arg name="args"                    default=""/>              <!-- delete_db_on_start, udebug -->
+  <arg name="args"                    default="--delete_db_on_start"/>              <!-- delete_db_on_start, udebug -->
   <arg name="rtabmap_args"            default="$(arg args)"/>   <!-- deprecated, use "args" argument -->
   <arg name="launch_prefix"           default=""/>              <!-- for debugging purpose, it fills launch-prefix tag of the nodes -->
   <arg name="output"                  default="screen"/>        <!-- Control node output (screen or log) -->
@@ -136,7 +140,8 @@
   <arg unless="$(arg compressed)" name="right_image_topic_relay"   default="$(arg right_image_topic)"/>
   <arg if="$(arg rgbd_sync)"      name="rgbd_topic_relay"          default="$(arg rgbd_topic)"/>
   <arg unless="$(arg rgbd_sync)"  name="rgbd_topic_relay"          default="$(arg rgbd_topic)_relay"/>
-
+  
+  <arg name="publish_tf" default="true" />
   <!-- Nodes -->
   <group ns="$(arg namespace)">
      
@@ -411,8 +416,10 @@
     <param name="approx_sync" type="bool"   value="$(arg approx_sync)"/>
   </node>
 
-  <!-- <arg name="pi/2" value="1.5707963267948966" />
-
-  <node pkg="tf" type="static_transform_publisher" name="map_odom" args="0 0 0 0 0 0 /map /odom 100" /> -->
+    <!-- Load reasonable defaults for the relative pose between cameras -->
+  <include if="$(arg publish_tf)"
+    file="$(find rgbd_launch)/launch/kinect_frames.launch">
+    <arg name="camera" value="$(arg camera)" />
+  </include>
 
 </launch>
